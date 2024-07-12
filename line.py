@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, jsonify, request
 import requests
+import subprocess
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -44,6 +45,22 @@ def get_ip():
         "remote_addr": request.remote_addr,
         "x_forwarded_for": request.headers.get('X-Forwarded-For', None)
     })
+
+
+@app.route('/ping-specific-ip')
+def ping_specific_ip():
+    specific_ip = os.environ.get('SPECIFIC_IP')
+    if not specific_ip:
+        return jsonify({"error": "SPECIFIC_IP environment variable is not set"}), 500
+    
+    try:
+        output = subprocess.check_output(['ping', '-c', '4', specific_ip], universal_newlines=True)
+        app.logger.info(f"Ping to {specific_ip} successful. Output: {output}")
+        return jsonify({"success": True, "ip": specific_ip, "output": output})
+    except subprocess.CalledProcessError as e:
+        app.logger.error(f"Ping to {specific_ip} failed. Error: {str(e)}")
+        return jsonify({"success": False, "ip": specific_ip, "error": str(e), "output": e.output})
+
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
