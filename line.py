@@ -3,6 +3,8 @@ import logging
 from flask import Flask, jsonify, request
 import requests
 import subprocess
+import socket
+
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -53,13 +55,41 @@ def ping_specific_ip():
     if not specific_ip:
         return jsonify({"error": "SPECIFIC_IP environment variable is not set"}), 500
     
+    results = {}
+    
+    # Ping
     try:
-        output = subprocess.check_output(['ping', '-c', '4', specific_ip], universal_newlines=True)
-        app.logger.info(f"Ping to {specific_ip} successful. Output: {output}")
-        return jsonify({"success": True, "ip": specific_ip, "output": output})
+        ping_output = subprocess.check_output(['ping', '-c', '4', '-W', '5', specific_ip], universal_newlines=True, stderr=subprocess.STDOUT)
+        results['ping'] = {"success": True, "output": ping_output}
     except subprocess.CalledProcessError as e:
-        app.logger.error(f"Ping to {specific_ip} failed. Error: {str(e)}")
-        return jsonify({"success": False, "ip": specific_ip, "error": str(e), "output": e.output})
+        results['ping'] = {"success": False, "error": str(e), "output": e.output}
+    
+    # Traceroute
+    try:
+        traceroute_output = subprocess.check_output(['traceroute', '-m', '15', specific_ip], universal_newlines=True, stderr=subprocess.STDOUT)
+        results['traceroute'] = {"success": True, "output": traceroute_output}
+    except subprocess.CalledProcessError as e:
+        results['traceroute'] = {"success": False, "error": str(e), "output": e.output}
+    
+    # TCP connection test
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(5)
+    tcp_result = sock.connect_ex((specific_ip, 80))
+    if tcp_result == 0:
+        results['tcp_connection'] = {"success": True, "message": "Port 80 is open"}
+    else:
+        results['tcp_connection'] = {"success": False, "message": f"Port 80 is closed or filtered. Error code: {tcp_result}"}
+    sock.close()
+    
+    # DNS lookup
+    try:
+        dns_info = socket.gethostbyaddr(specific_ip)
+        results['dns_lookup'] = {"success": True, "hostname": dns_info[0], "aliases": dns_info[1], "ip_addresses": dns_info[2]}
+    except socket.herror as e:
+        results['dns_lookup'] = {"success": False, "error": str(e)}
+    
+    app.logger.info(f"Connectivity test results for {specific_ip}: {results}")
+    return jsonify(results)
 
 
 if __name__ == '__main__':
