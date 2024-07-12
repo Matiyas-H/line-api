@@ -3,6 +3,7 @@ import logging
 import socket
 from flask import Flask, jsonify, request
 import requests
+from ping3 import ping, PingError
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -27,9 +28,25 @@ def ping_host():
         return jsonify({"success": False, "error": "SPECIFIC_IP environment variable is not set"}), 400
     
     if tcp_ping(host, port):
-        return jsonify({"success": True, "message": "Successfully connected to the server."}), 200
+        return jsonify({"success": True, "message": "Successfully connected to the server via TCP."}), 200
     else:
-        return jsonify({"success": False, "message": "Failed to connect to the server."}), 400
+        return jsonify({"success": False, "message": "Failed to connect to the server via TCP."}), 400
+
+@app.route('/icmp_ping')
+def icmp_ping():
+    host = os.environ.get('SPECIFIC_IP')
+    if not host:
+        return jsonify({"success": False, "error": "SPECIFIC_IP environment variable is not set"}), 400
+
+    try:
+        response = ping(host, timeout=2)  # Adjust timeout as necessary
+        if response is not None:
+            return jsonify({"success": True, "message": f"Successfully pinged {host} with response time {response} ms."}), 200
+        else:
+            return jsonify({"success": False, "message": f"Ping to {host} failed."}), 400
+    except PingError as e:
+        app.logger.error(f"ICMP ping to {host} failed: {e}")
+        return jsonify({"success": False, "message": f"ICMP ping to {host} failed: {e}"}), 500
 
 @app.route('/check_api')
 def check_api():
