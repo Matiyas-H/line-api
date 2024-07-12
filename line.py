@@ -116,6 +116,47 @@ def ping_specific_ip():
 
 
 
+@app.route('/check-connectivity')
+def check_connectivity():
+    specific_ip = os.environ.get('SPECIFIC_IP')
+    if not specific_ip:
+        app.logger.error("SPECIFIC_IP environment variable is not set")
+        return jsonify({"error": "SPECIFIC_IP environment variable is not set"}), 500
+    
+    results = {}
+    
+    # TCP connection test
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)
+        tcp_result = sock.connect_ex((specific_ip, 80))
+        if tcp_result == 0:
+            results['tcp_connection'] = {"success": True, "message": "Port 80 is open"}
+        else:
+            results['tcp_connection'] = {"success": False, "message": f"Port 80 is closed or filtered. Error code: {tcp_result}"}
+    except Exception as e:
+        app.logger.error(f"TCP connection test failed: {str(e)}")
+        results['tcp_connection'] = {"success": False, "error": str(e)}
+    finally:
+        sock.close()
+    
+    # HTTP GET request test
+    try:
+        response = requests.get(f"http://{specific_ip}", timeout=10)
+        results['http_get'] = {
+            "success": True,
+            "status_code": response.status_code,
+            "headers": dict(response.headers)
+        }
+    except requests.RequestException as e:
+        app.logger.error(f"HTTP GET request failed: {str(e)}")
+        results['http_get'] = {"success": False, "error": str(e)}
+    
+    app.logger.info(f"Connectivity test results for {specific_ip}: {results}")
+    return jsonify(results)
+
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
