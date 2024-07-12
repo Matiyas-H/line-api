@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, jsonify
 import requests
-
+from flask import request
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -10,6 +10,9 @@ logging.basicConfig(level=logging.DEBUG)
 @app.route('/check_api')
 def check_api():
     api_url = os.environ.get('API_URL')
+    app.logger.debug('Headers: %s', request.headers)
+    app.logger.debug('Request Body: %s', request.data)
+    app.logger.debug('Request URL: %s', request.url)
     if not api_url:
         app.logger.error("API_URL environment variable is not set")
         return jsonify({"error": "API_URL environment variable is not set"}), 500
