@@ -58,15 +58,17 @@ def check_api():
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-        'Accept': '*/*',
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
     }
 
     try:
         app.logger.debug(f"Sending request to API URL: {api_url} with headers: {headers}")
         response = requests.get(api_url, headers=headers, timeout=10)
-        app.logger.debug(f"API response status: {response.status_code}")
-        app.logger.debug(f"API response body: {response.text[:500]}")
+        app.logger.debug(f"Request URL: {response.request.url}")
+        app.logger.debug(f"Request Headers: {response.request.headers}")
+        app.logger.debug(f"Response status code: {response.status_code}")
+        app.logger.debug(f"Response body: {response.text[:500]}")
         return jsonify({
             "success": response.status_code == 200,
             "status_code": response.status_code,
