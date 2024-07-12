@@ -3,7 +3,12 @@ import logging
 import socket
 from flask import Flask, jsonify, request
 import requests
-from ping3 import ping, PingError
+
+try:
+    from ping3 import ping, PingError
+except ImportError:
+    from ping3 import ping
+    PingError = None
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -44,7 +49,7 @@ def icmp_ping():
             return jsonify({"success": True, "message": f"Successfully pinged {host} with response time {response} ms."}), 200
         else:
             return jsonify({"success": False, "message": f"Ping to {host} failed."}), 400
-    except PingError as e:
+    except Exception as e:
         app.logger.error(f"ICMP ping to {host} failed: {e}")
         return jsonify({"success": False, "message": f"ICMP ping to {host} failed: {e}"}), 500
 
