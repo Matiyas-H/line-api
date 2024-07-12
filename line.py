@@ -6,7 +6,7 @@ from flask import request
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-@app.route('/check_api')
+
 @app.route('/check_api')
 def check_api():
     api_url = os.environ.get('API_URL')
