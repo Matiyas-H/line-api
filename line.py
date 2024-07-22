@@ -49,15 +49,12 @@ def icmp_ping():
         app.logger.error(f"ICMP ping to {host} failed: {e}")
         return jsonify({"success": False, "message": f"ICMP ping to {host} failed: {e}"}), 500
 
-@app.route('/check_api/<cid>/<pid>')
-def check_api(cid, pid):
-    base_api_url = os.environ.get('API_BASE_URL')  # Base URL without the dynamic parts
-    if not base_api_url:
-        app.logger.error("API_BASE_URL environment variable is not set")
-        return jsonify({"error": "API_BASE_URL environment variable is not set"}), 500
-
-    # Construct the full API URL including the dynamic parts
-    full_api_url = f"{base_api_url}/status/{cid}/{pid}"
+@app.route('/check_api')
+def check_api():
+    api_url = os.environ.get('API_URL')
+    if not api_url:
+        app.logger.error("API_URL environment variable is not set")
+        return jsonify({"error": "API_URL environment variable is not set"}), 500
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
@@ -66,8 +63,8 @@ def check_api(cid, pid):
     }
 
     try:
-        app.logger.debug(f"Sending request to API URL: {full_api_url} with headers: {headers}")
-        response = requests.get(full_api_url, headers=headers, timeout=10)
+        app.logger.debug(f"Sending request to API URL: {api_url} with headers: {headers}")
+        response = requests.get(api_url, headers=headers, timeout=10)
         app.logger.debug(f"Request URL: {response.request.url}")
         app.logger.debug(f"Request Headers: {response.request.headers}")
         app.logger.debug(f"Response status code: {response.status_code}")
@@ -80,7 +77,6 @@ def check_api(cid, pid):
     except requests.RequestException as e:
         app.logger.error(f"API request failed: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
