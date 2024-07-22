@@ -49,12 +49,14 @@ def icmp_ping():
         app.logger.error(f"ICMP ping to {host} failed: {e}")
         return jsonify({"success": False, "message": f"ICMP ping to {host} failed: {e}"}), 500
 
-@app.route('/check_api')
-def check_api():
-    api_url = os.environ.get('API_URL')
-    if not api_url:
-        app.logger.error("API_URL environment variable is not set")
+@app.route('/check_person_status/<int:concern_id>/<int:person_id>')
+def check_person_status(concern_id, person_id):
+    base_url = os.environ.get('API_URL')
+    if not base_url:
+        app.logger.error("API_BASE_URL environment variable is not set")
         return jsonify({"error": "API_URL environment variable is not set"}), 500
+
+    api_url = f"{base_url}/api/status/{concern_id}/{person_id}"
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
